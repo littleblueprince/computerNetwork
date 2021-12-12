@@ -21,7 +21,7 @@ int main (int argc, char *argv[]){
 	endpoint.Create(2);
 	MobilityHelper m1;
 	m1.SetPositionAllocator("ns3::GridPositionAllocator",
-				"MinX",DoubleValue(25.0),
+				"MinX",DoubleValue(0.0),
 				"MinY",DoubleValue(0.0),
 				"DeltaX",DoubleValue(0.0),
 				"DeltaY",DoubleValue(50.0),
@@ -35,20 +35,20 @@ int main (int argc, char *argv[]){
 	devices=ptp.Install(endpoint);
 	
 	NodeContainer nodes;
-	nodes.Create(30);
+	nodes.Create(27);
 	MobilityHelper m;
 	m.SetPositionAllocator("ns3::GridPositionAllocator",
-				"MinX",DoubleValue(10.0),
+				"MinX",DoubleValue(-40.0),
 				"MinY",DoubleValue(10.0),
-				"DeltaX",DoubleValue(5.0),
+				"DeltaX",DoubleValue(10.0),
 				"DeltaY",DoubleValue(10.0),
-				"GridWidth",UintegerValue(10),
+				"GridWidth",UintegerValue(9),
 				"LayoutType",StringValue("RowFirst"));
 	m.SetMobilityModel("ns3::RandomWalk2dMobilityModel",
-		"Bounds",RectangleValue(Rectangle(-500,500,-500,500)));
+		"Bounds",RectangleValue(Rectangle(-500,500,0,50)));
 	m.Install(nodes);
 	
-	Simulator::Stop(Seconds(30.0));
+	Simulator::Stop(Seconds(120.0));
 	AnimationInterface anim("NS3.xml");
 	Simulator::Run ();
 	Simulator::Destroy ();
