@@ -44,9 +44,11 @@ int main (int argc, char *argv[]){
 				"DeltaY",DoubleValue(10.0),
 				"GridWidth",UintegerValue(10),
 				"LayoutType",StringValue("RowFirst"));
+	m.SetMobilityModel("ns3::RandomWalk2dMobilityModel",
+		"Bounds",RectangleValue(Rectangle(-500,500,-500,500)));
 	m.Install(nodes);
 	
-	Simulator::Stop(Seconds(15.0));
+	Simulator::Stop(Seconds(30.0));
 	AnimationInterface anim("NS3.xml");
 	Simulator::Run ();
 	Simulator::Destroy ();
