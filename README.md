@@ -1,2 +1,0 @@
-# computerNetwork
-ns3
