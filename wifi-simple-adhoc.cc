@@ -281,8 +281,9 @@ int main(int argc, char* argv[])
 
 	// Tracing
 	wifiPhy.EnablePcap("wifi-simple-adhoc", devices);
-	Simulator::ScheduleWithContext(c.Get(nodenumber-2)->GetId(), Seconds(1.0), &work, nodenumber - 2, c, tid, 4.0);
-	Simulator::ScheduleWithContext(c.Get(nodenumber - 2)->GetId(), Seconds(2.0), &work, nodenumber - 2, c, tid, 4.0);
+	for (double i = 0; i < 20; i++) {
+		Simulator::ScheduleWithContext(c.Get(nodenumber - 2)->GetId(), Seconds(i), &work, nodenumber - 2, c, tid, 4.0);
+	}
 	//send(1,4,c,tid,2.0);
 
 	// Output what we are doing
