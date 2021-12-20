@@ -172,7 +172,7 @@ void work(int currentid,NodeContainer c, TypeId tid, double time) {
 		Simulator::ScheduleWithContext(c.Get(currentid)->GetId(), Seconds(time * 1.01), &work, currentid, c, tid, time * 1.01);
 	}
 	else if (nextleap >= nodenumber - 3)return;
-	else if ((nextleap != -1) && (getdistance(c.Get(currentid), c.Get(nextleap)) > range - 5)) {
+	else if (getdistance(c.Get(currentid), c.Get(nextleap)) > range - 5) {
 		missing++;
 		return;
 	}
