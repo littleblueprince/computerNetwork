@@ -172,7 +172,7 @@ void work(int currentid,NodeContainer c, TypeId tid, double time) {
 		Simulator::ScheduleWithContext(c.Get(currentid)->GetId(), Seconds(time * 1.01), &work, currentid, c, tid, time * 1.01);
 	}
 	else if (nextleap >= nodenumber - 3)return;
-	else if ((nextleap != -1) && (getdistance(c.Get(currentid), c.Get(nextleap)) > range)) {
+	else if ((nextleap != -1) && (getdistance(c.Get(currentid), c.Get(nextleap)) > range - 5)) {
 		missing++;
 		return;
 	}
@@ -291,7 +291,7 @@ int main(int argc, char* argv[])
 
 	// Tracing
 	wifiPhy.EnablePcap("wifi-simple-adhoc", devices);
-	for (double i = 0; i < 2; i += 0.1) {
+	for (double i = 0; i < 4; i += 0.1) {
 		Simulator::ScheduleWithContext(c.Get(nodenumber - 4)->GetId(), Seconds(i), &work, nodenumber - 4, c, tid, 0.1);
 		Simulator::ScheduleWithContext(c.Get(nodenumber - 5)->GetId(), Seconds(i + 0.001), &work, nodenumber - 5, c, tid, 0.1);
 		Simulator::ScheduleWithContext(c.Get(nodenumber - 6)->GetId(), Seconds(i + 0.002), &work, nodenumber - 6, c, tid, 0.1);
