@@ -103,33 +103,27 @@ void initial(NodeContainer c) {
 		}
 	}
 }
-int findavailable(int level) {
-	for (int i = 0; i < nodenumber; i++) {
-		if (StateTable[i] == 2 && LevelTable[i] == level)return i;
-	}
-	return -1;
-}
 void ReceivePacket(Ptr<Socket> socket)
 {
 	while (socket->Recv())
 	{
-		missing--;
 		NS_LOG_UNCOND("Received one packet!");
 	}
 }
 
 static void GenerateTraffic(Ptr<Socket> socket, uint32_t pktSize,
-	uint32_t pktCount, Time pktInterval)
+	uint32_t pktCount, Time pktInterval,int targetid,int sourceid)
 {
 	if (pktCount > 0)
 	{
 		socket->Send(Create<Packet>(pktSize));
 		Simulator::Schedule(pktInterval, &GenerateTraffic,
-			socket, pktSize, pktCount - 1, pktInterval);
+			socket, pktSize, pktCount - 1, pktInterval, targetid, sourceid);
 	}
 	else
 	{
 		socket->Close();
+		StateTable[targetid] = StateTable[sourceid] = 2;
 	}
 }
 void send(int sourceid, int targetid, NodeContainer c, TypeId tid, double time) {
@@ -147,7 +141,7 @@ void send(int sourceid, int targetid, NodeContainer c, TypeId tid, double time) 
 	source->Connect(remote);
 	Simulator::ScheduleWithContext(source->GetNode()->GetId(),
 		Seconds(time), &GenerateTraffic,
-		source, packetSize, numPackets, interPacketInterval);
+		source, packetSize, numPackets, interPacketInterval, targetid, sourceid);
 	//GenerateTraffic(source, packetSize, numPackets, interPacketInterval);
 }
 int sendexecute(int sourceid, NodeContainer c, TypeId tid, double time) {
@@ -165,13 +159,15 @@ void work(int currentid,NodeContainer c, TypeId tid, double time) {
 	if (nextleap == -1) {
 		//Time _now = Simulator::Now();
 		//double now = _now.GetSeconds();
-		//while (Simulator::Now() != Time(now + 0.5));
+		//while (Simulator::Now() != Time(now * 1.01));
+		//work(currentid, c, tid, time * 1.1);
+		Simulator::ScheduleWithContext(c.Get(currentid)->GetId(), Seconds(time * 1.01), &work, currentid, c, tid, time * 1.01);
 	}
 	else if (nextleap == nodenumber - 1) {
 		return;
 	}
 	else {
-		work(nextleap, c, tid, time + 4);
+		Simulator::ScheduleWithContext(c.Get(nextleap)->GetId(), Seconds(time), &work, nextleap, c, tid, time);
 	}
 }
 int main(int argc, char* argv[])
@@ -276,8 +272,8 @@ int main(int argc, char* argv[])
 
 	// Tracing
 	wifiPhy.EnablePcap("wifi-simple-adhoc", devices);
-	work(nodenumber - 2, c, tid, 1);
-	work(nodenumber - 2, c, tid, 2);
+	Simulator::ScheduleWithContext(c.Get(nodenumber-2)->GetId(), Seconds(1.0), &work, nodenumber - 2, c, tid, 4.0);
+	Simulator::ScheduleWithContext(c.Get(nodenumber - 2)->GetId(), Seconds(2.0), &work, nodenumber - 2, c, tid, 4.0);
 	//send(1,4,c,tid,2.0);
 
 	// Output what we are doing
