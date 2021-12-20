@@ -63,11 +63,11 @@ using namespace ns3;
 NS_LOG_COMPONENT_DEFINE("WifiSimpleAdhoc");
 int missing = 0;
 const int range = 15;
-const int nodenumber = 11;
+const int nodenumber = 36;
 double rss = -80;  // -dBm
 uint32_t packetSize = 1000; // bytes
 uint32_t numPackets = 1;
-double interval = 1.0; // seconds
+double interval = 0.1; // seconds
 bool verbose = false;
 Time interPacketInterval = Seconds(interval);
 int StateTable[nodenumber] = { 0 };
@@ -84,11 +84,11 @@ void initial(NodeContainer c) {
 	for (int i = 0; i < nodenumber; i++) {
 		StateTable[i] = 2;
 	}
-	for (int i = 0; i < nodenumber - 2; i++) {
-		LevelTable[i] = i / 3;
+	for (int i = 0; i < nodenumber - 6; i++) {
+		LevelTable[i] = i / 6;
 	}
-	LevelTable[nodenumber - 2] = -1;
-	LevelTable[nodenumber - 1] = 4;
+	LevelTable[nodenumber - 4] = LevelTable[nodenumber - 5] = LevelTable[nodenumber - 6] = -1;
+	LevelTable[nodenumber - 1] = LevelTable[nodenumber - 2] = LevelTable[nodenumber - 3] = 6;
 	for (int i = 0; i < nodenumber; i++) {
 		for (int j = 0; j < nodenumber; j++) {
 			NeighborTable[i][j] = -2;
@@ -136,7 +136,6 @@ static void GenerateTraffic(Ptr<Socket> socket, uint32_t pktSize,
 	}
 }
 void send(int sourceid, int targetid, NodeContainer c, TypeId tid, double time) {
-	missing++;
 	StateTable[sourceid] = 0;
 	StateTable[targetid] = 1;
 	Ptr<Socket> recvSink = Socket::CreateSocket(c.Get(targetid), tid);
@@ -172,7 +171,9 @@ void work(int currentid,NodeContainer c, TypeId tid, double time) {
 		//work(currentid, c, tid, time * 1.1);
 		Simulator::ScheduleWithContext(c.Get(currentid)->GetId(), Seconds(time * 1.01), &work, currentid, c, tid, time * 1.01);
 	}
-	else if (nextleap == nodenumber - 1) {
+	else if (nextleap >= nodenumber - 3)return;
+	else if ((nextleap != -1) && (getdistance(c.Get(currentid), c.Get(nextleap)) > range)) {
+		missing++;
 		return;
 	}
 	else {
@@ -238,6 +239,10 @@ int main(int argc, char* argv[])
 	wifiMac.SetType("ns3::AdhocWifiMac");
 	NetDeviceContainer devices = wifi.Install(wifiPhy, wifiMac, c);
 
+	NodeContainer nodes;
+	for (int i = 0; i < nodenumber - 6; i++) {
+		nodes.Add(c.Get(i));
+	}
 	// Note that with FixedRssLossModel, the positions below are not
 	// used for received signal strength.
 	MobilityHelper m2;
@@ -246,26 +251,31 @@ int main(int argc, char* argv[])
 		"MinY", DoubleValue(10.0),
 		"DeltaX", DoubleValue(10.0),
 		"DeltaY", DoubleValue(10.0),
-		"GridWidth", UintegerValue(3),
+		"GridWidth", UintegerValue(6),
 		"LayoutType", StringValue("RowFirst"));
-	m2.Install(c);
 	m2.SetMobilityModel("ns3::RandomWalk2dMobilityModel",
-		"Bounds", RectangleValue(Rectangle(-500, 500, 0, 40)));
+		"Bounds", RectangleValue(Rectangle(-500, 500, 0, 60)));
+	m2.Install(nodes);
 	NodeContainer source;
-	source.Add(c.Get(nodenumber - 2));
+	source.Add(c.Get(nodenumber - 4));
+	source.Add(c.Get(nodenumber - 5));
+	source.Add(c.Get(nodenumber - 6));
 	NodeContainer sink;
 	sink.Add(c.Get(nodenumber - 1));
+	sink.Add(c.Get(nodenumber - 2));
+	sink.Add(c.Get(nodenumber - 3));
 	NodeContainer endpoints;
 	endpoints.Add(source);
 	endpoints.Add(sink);
 	MobilityHelper m3;
 	m3.SetPositionAllocator("ns3::GridPositionAllocator",
-		"MinX", DoubleValue(20.0),
+		"MinX", DoubleValue(15.0),
 		"MinY", DoubleValue(0.0),
-		"DeltaX", DoubleValue(0.0),
-		"DeltaY", DoubleValue(40.0),
-		"GridWidth", UintegerValue(1),
+		"DeltaX", DoubleValue(20.0),
+		"DeltaY", DoubleValue(60.0),
+		"GridWidth", UintegerValue(3),
 		"LayoutType", StringValue("RowFirst"));
+	m3.SetMobilityModel("ns3::ConstantPositionMobilityModel");
 	m3.Install(endpoints);
 	initial(c);
 
@@ -281,8 +291,10 @@ int main(int argc, char* argv[])
 
 	// Tracing
 	wifiPhy.EnablePcap("wifi-simple-adhoc", devices);
-	for (double i = 0; i < 20; i++) {
-		Simulator::ScheduleWithContext(c.Get(nodenumber - 2)->GetId(), Seconds(i), &work, nodenumber - 2, c, tid, 4.0);
+	for (double i = 0; i < 2; i += 0.1) {
+		Simulator::ScheduleWithContext(c.Get(nodenumber - 4)->GetId(), Seconds(i), &work, nodenumber - 4, c, tid, 0.1);
+		Simulator::ScheduleWithContext(c.Get(nodenumber - 5)->GetId(), Seconds(i + 0.001), &work, nodenumber - 5, c, tid, 0.1);
+		Simulator::ScheduleWithContext(c.Get(nodenumber - 6)->GetId(), Seconds(i + 0.002), &work, nodenumber - 6, c, tid, 0.1);
 	}
 	//send(1,4,c,tid,2.0);
 
@@ -290,6 +302,7 @@ int main(int argc, char* argv[])
 	NS_LOG_UNCOND("Testing " << numPackets << " packets sent with receiver rss " << rss);
 	NS_LOG_UNCOND("missing:" << missing);
 
+	Simulator::Stop(Seconds(15));
 	AnimationInterface anim("wifi-simple-adhoc.xml");
 	Simulator::Run();
 	Simulator::Destroy();
